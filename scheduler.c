@@ -497,6 +497,205 @@ void Preemptive_SJF()
     printf("Average waiting : %f\n", (float)waiting_sum/process_count);
 }
 
+void Preemptive_Priority()
+{
+    // it'll start with sorted arr
+    process sorted_process_arr[MAX_PROCESS];
+    
+    for(int i = 0 ; i < process_count; i++)
+    {
+        sorted_process_arr[i] = process_arr[i];
+    }
+
+    // sorting
+    for (int i = 0; i < process_count - 1; i++) 
+    {
+        for (int j = i + 1; j < process_count; j++) 
+        {
+            // set front to bigger
+            if (sorted_process_arr[i].priority < sorted_process_arr[j].priority) 
+            {
+                process temp = sorted_process_arr[i];
+                sorted_process_arr[i] = sorted_process_arr[j];
+                sorted_process_arr[j] = temp;
+            }
+        }
+    }
+
+    // printing info
+    printf("|         process info     |\n");
+    printf("| PID | arrival | priority |\n");
+    printf("+=====+=========+==========+\n");
+    for(int i = 0; i < process_count; i++)
+    {
+        printf("|%5d|%9d|%10d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].priority);
+    }
+    printf("+=====+=========+=======+\n");
+
+    // preparing variables
+    int completed = 0; // completed processes
+    int tick = 0; 
+    int Gantt_note[1000][2] = {{0,0},}; // which pid ends when
+    int Gantt_index = 0;
+    
+    printf("| Tick | PID | priority |\n");
+    printf("+======+=====+==========+\n");
+    
+    // made running process, which saves running process information
+    process running = nothing;
+    
+    while(completed < process_count && tick < 100)
+    {
+        // from empty or worse to better
+        // check from ahead of the queue.
+        for(int i = 0 ; i < process_count; i++)
+        {
+            // empty process cannot be preemptive
+            if(sorted_process_arr[i].pid == -1) {break;}
+
+            // check empty or better
+            if(sorted_process_arr[i].arrival_t <= tick && (running.pid == -1 || 
+                sorted_process_arr[i].priority > running.priority))
+            {
+                //if running was empty
+                if(running.pid == -1) 
+                {
+
+                    // Gantt noting for empty
+                    if(running.executed_cpu_t > 0)
+                    {
+                        running.executed_cpu_t = 0;
+                        Gantt_note[Gantt_index][0] = running.pid;
+                        Gantt_note[Gantt_index][1] = tick;
+                        Gantt_index++;
+                    }
+                    
+                    // replace running, reorganize queue
+                    running = sorted_process_arr[i];
+                    for(int j = i; j < process_count-1 ; j++)
+                    {
+                        // from i, drag the queue
+                        if(sorted_process_arr[j+1].pid != -1) 
+                        {
+                            sorted_process_arr[j] = sorted_process_arr[j+1];
+                            sorted_process_arr[j+1] = nothing;
+                        }
+                    }
+                }
+                else // if running normal process
+                {
+                    // Gantt noting for normal process
+                    Gantt_note[Gantt_index][0] = running.pid;
+                    Gantt_note[Gantt_index][1] = tick;
+                    Gantt_index++;
+
+                    // save current running to put again
+                    process temp = running;
+
+                    // replace running, reorganize queue
+                    running = sorted_process_arr[i];
+                    for(int j = i; j < process_count-1 ; j++)
+                    {
+                        // from i, drag the queue
+                        if(sorted_process_arr[j+1].pid != -1) 
+                        {
+                            sorted_process_arr[j] = sorted_process_arr[j+1];
+                            sorted_process_arr[j+1] = nothing;
+                        }
+                    }
+
+                    // insert temp. find proper position starting from right.
+                    for(int j = process_count-1; j >= 0; j--)
+                    {
+                        if(sorted_process_arr[j].pid == -1) {continue;}
+                        
+                        if(temp.priority < sorted_process_arr[j].priority)
+                        {
+                            sorted_process_arr[j+1] = temp;
+                            break;
+                        }
+                        else
+                        {
+                            sorted_process_arr[j+1] = sorted_process_arr[j];
+                            sorted_process_arr[j] = nothing;
+                            if(j==0) { sorted_process_arr[j] = temp;}
+                        }
+                    }
+                }
+                // last check
+                if(running.pid == sorted_process_arr[0].pid) {sorted_process_arr[0] = nothing;}
+
+                // found first is the best always.
+                break;
+            }
+        }
+
+        printf("|%6d|%5d|%10d|\n", tick , running.pid , running.priority);
+
+        //debug
+        for(int i = 0; i < process_count; i++)
+        {
+            printf("%d ",sorted_process_arr[i].pid);
+        }
+        printf("\n");
+
+        //progress tick
+        tick++;
+
+        //process progress
+        running.executed_cpu_t++;
+        
+        //check process done
+        if(running.executed_cpu_t >= running.cpu_burst_t && running.pid != -1)
+        {
+            Gantt_note[Gantt_index][0] = running.pid;
+            Gantt_note[Gantt_index][1] = tick;
+            Gantt_index++;
+
+            running = nothing;
+            completed++;
+        }
+    } // scheduling finished
+
+    // draw Gantt chart
+    printf("\n=== Gantt chart ===\n");
+    for(int i = 0; i < Gantt_index; i++)
+    {
+        if(Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |",Gantt_note[i][1]);}
+        else { printf("| P[%d] ~%d |",Gantt_note[i][0],Gantt_note[i][1]); }
+        
+    }
+    printf("\n===================\n");
+
+    // calculate turnaround with original arr
+    int turnaround_sum = 0;
+    int temp_turnaround = 0;
+    for(int i = 0; i < process_count; i++)
+    {
+        for(int j = Gantt_index-1 ; j >= 0; j--)
+        {
+            if(Gantt_note[j][0] == process_arr[i].pid)
+            {
+                temp_turnaround = Gantt_note[j][1];
+                break;
+            }
+        }
+        turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+        
+    }
+    
+    //evaluation
+    printf("\n=== Evaluation ===\n");
+    printf("Average turnaround : %f\n", (float)turnaround_sum/process_count);
+
+    int waiting_sum = turnaround_sum;
+    for(int i = 0; i < Gantt_index; i++)
+    {
+        waiting_sum -= process_arr[i].cpu_burst_t;
+    }
+    printf("Average waiting : %f\n", (float)waiting_sum/process_count);
+}
+
 // main
 int main(int argc, char *argv[])
 {
@@ -538,7 +737,7 @@ int main(int argc, char *argv[])
                 break;
             case 6:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
-                else { ; }
+                else { Preemptive_Priority(); }
                 break;
             case 7:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
@@ -600,16 +799,18 @@ void MakeProcessFast()
     int _executed_cpu_t = 0;
 
     printf("\n=== making process fast ===\n");
-    printf("please input arrival time, cpu burst. (max : 20)\n");
-    printf("example > 3 3\n");
+    printf("please input arrival time, cpu burst, priority. (max : 30)\n");
+    printf("process with higher priority starts first.\n");
+    printf("example > 3 3 3\n");
     printf("=================\n");
     printf("> ");
 
-    int checker = scanf("%d %d",&_arrival_t,&_cpu_burst_t);
-    if(checker == 2) 
+    int checker = scanf("%d %d %d",&_arrival_t,&_cpu_burst_t,&_priority);
+    if(checker == 3) 
     {
-        if(_arrival_t < 0) {_arrival_t = 0;} else if (_arrival_t > 20) {_arrival_t = 20;}
-        if(_cpu_burst_t < 1) {_cpu_burst_t = 1;} else if (_cpu_burst_t > 20) {_cpu_burst_t = 20;}
+        if(_arrival_t < 0) {_arrival_t = 0;} else if (_arrival_t > 30) {_arrival_t = 30;}
+        if(_cpu_burst_t < 1) {_cpu_burst_t = 1;} else if (_cpu_burst_t > 30) {_cpu_burst_t = 30;}
+        if(_priority < 1) {_priority = 1;} else if (_priority > 30) {_priority = 30;}
         
         AddProcess(_pid,_arrival_t,_cpu_burst_t,_IO_burst_t,_IO_request_t,_priority,_executed_cpu_t);
         printf("- process is created -\n");
@@ -632,8 +833,9 @@ void MakeProcessRandomly()
 
     int _executed_cpu_t = 0;
     
-    _arrival_t = rand()%20;
-    _cpu_burst_t = rand()%20 + 1;
+    _arrival_t = rand()%30;
+    _cpu_burst_t = rand()%30 + 1;
+    _priority = rand()%30 + 1;
 
     AddProcess(_pid,_arrival_t,_cpu_burst_t,_IO_burst_t,_IO_request_t,_priority,_executed_cpu_t);
     printf("- process is created -\n");
