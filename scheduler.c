@@ -292,6 +292,211 @@ void Non_preemptive_SJF()
     printf("Average waiting : %f\n", (float)waiting_sum/process_count);
 }
 
+void Preemptive_SJF()
+{
+    // start with sorted arr
+    process sorted_process_arr[MAX_PROCESS];
+    
+    for(int i = 0 ; i < process_count; i++)
+    {
+        sorted_process_arr[i] = process_arr[i];
+    }
+
+    // sorting
+    for (int i = 0; i < process_count - 1; i++) 
+    {
+        for (int j = i + 1; j < process_count; j++) 
+        {
+            if (sorted_process_arr[i].cpu_burst_t > sorted_process_arr[j].cpu_burst_t) 
+            {
+                process temp = sorted_process_arr[i];
+                sorted_process_arr[i] = sorted_process_arr[j];
+                sorted_process_arr[j] = temp;
+            }
+        }
+    }
+
+    // printing info
+    printf("|      process info     |\n");
+    printf("| PID | arrival | burst |\n");
+    printf("+=====+=========+=======+\n");
+    for(int i = 0; i < process_count; i++)
+    {
+        printf("|%5d|%9d|%7d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].cpu_burst_t);
+    }
+    printf("+=====+=========+=======+\n");
+
+    // scheduling start
+    int completed = 0; // completed processes
+    int tick = 0; 
+    int Gantt_note[1000][2] = {{0,0},}; // which pid ends when
+    int Gantt_index = 0;
+    
+    printf("| Tick | PID | burst |\n");
+    printf("+======+=====+=======+\n");
+    
+    // made running process, which saves running process information
+    process running = nothing;
+    process* runningPtr = &running;
+    
+    while(completed < process_count && tick < 100)
+    {
+        // from empty or worse to better
+        for(int i = 0 ; i < process_count; i++)
+        {
+            
+            // empty process cannot be preemptive
+            if(sorted_process_arr[i].pid == -1) {break;}
+
+            // check empty or better
+            if(sorted_process_arr[i].arrival_t <= tick && ((*runningPtr).pid == -1 || 
+                sorted_process_arr[i].cpu_burst_t - sorted_process_arr[i].executed_cpu_t <
+                (*runningPtr).cpu_burst_t - (*runningPtr).executed_cpu_t))
+            {
+                //current running was empty
+                if((*runningPtr).pid == -1) 
+                {
+
+                    // Gantt noting for empty
+                    if((*runningPtr).executed_cpu_t > 0)
+                    {
+                        (*runningPtr).executed_cpu_t = 0;
+                        Gantt_note[Gantt_index][0] = (*runningPtr).pid;
+                        Gantt_note[Gantt_index][1] = tick;
+                        Gantt_index++;
+                    }
+                    
+                    // replacing running
+                    running = sorted_process_arr[i];
+                    for(int j = i; j < process_count-1 ; j++)
+                    {
+                        if(sorted_process_arr[j+1].pid != -1) 
+                        {
+                            sorted_process_arr[j] = sorted_process_arr[j+1];
+                            sorted_process_arr[j+1] = nothing;
+                        }
+                    }
+                    runningPtr = &running;
+                }
+                else
+                {
+                    // Gantt noting for normal process
+                    Gantt_note[Gantt_index][0] = (*runningPtr).pid;
+                    Gantt_note[Gantt_index][1] = tick;
+                    Gantt_index++;
+
+                    // replacing running and inserting
+                    process temp = running;
+                    running = sorted_process_arr[i];
+
+                    // deleting
+                    for(int j = i; j < process_count-1 ; j++)
+                    {
+                        if(sorted_process_arr[j+1].pid != -1) 
+                        {
+                            sorted_process_arr[j] = sorted_process_arr[j+1];
+                            sorted_process_arr[j+1] = nothing;
+                        }
+                    }
+
+                    // temp inserting !!
+                    for(int j = process_count-1; j >= 0; j--)
+                    {
+                        if(sorted_process_arr[j].pid == -1) {continue;}
+                        if(temp.cpu_burst_t - temp.executed_cpu_t >
+                            sorted_process_arr[j].cpu_burst_t - sorted_process_arr[j].executed_cpu_t)
+                        {
+                            sorted_process_arr[j+1] = temp;
+                            break;
+                        }
+                        else
+                        {
+                            sorted_process_arr[j+1] = sorted_process_arr[j];
+                            sorted_process_arr[j] = nothing;
+                            if(j==0) { sorted_process_arr[j] = temp;}
+                        }
+                    }
+                    runningPtr = &running;
+                }
+            
+                // found first is the best always.
+                break;
+            }
+        }
+
+        printf("|%6d|%5d|%7d|\n", tick , (*runningPtr).pid , (*runningPtr).cpu_burst_t);
+
+        //debug
+        for(int i = 0; i < process_count; i++)
+        {
+            printf("%d ",sorted_process_arr[i].pid);
+        }
+        printf("\n");
+
+        tick++;
+
+        //process progress
+        (*runningPtr).executed_cpu_t++;
+        
+        //process done
+        if((*runningPtr).executed_cpu_t >= (*runningPtr).cpu_burst_t && (*runningPtr).pid != -1)
+        {
+            Gantt_note[Gantt_index][0] = (*runningPtr).pid;
+            Gantt_note[Gantt_index][1] = tick;
+            Gantt_index++;
+            running = nothing;
+            runningPtr = &running;
+            completed++;
+            
+            // process shift.. don't have to do it.
+            /*
+            for(int i = 0; i < process_count-1; i++)
+            {
+                sorted_process_arr[i] = sorted_process_arr[i+1];
+            }
+            */
+        }
+    }
+
+    // draw Gantt chart
+    printf("\n=== Gantt chart ===\n");
+    for(int i = 0; i < Gantt_index; i++)
+    {
+        if(Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |",Gantt_note[i][1]);}
+        else { printf("| P[%d] ~%d |",Gantt_note[i][0],Gantt_note[i][1]); }
+        
+    }
+    printf("\n===================\n");
+
+    // calculate turnaround with original arr
+    int turnaround_sum = 0;
+    int temp_turnaround = 0;
+    for(int i = 0; i < process_count; i++)
+    {
+        for(int j = Gantt_index-1 ; j >= 0; j--)
+        {
+            if(Gantt_note[j][0] == process_arr[i].pid)
+            {
+                temp_turnaround = Gantt_note[j][1];
+                break;
+            }
+        }
+        turnaround_sum += temp_turnaround - process_arr[i].arrival_t;
+        
+    }
+    
+    //evaluation
+    printf("\n=== Evaluation ===\n");
+    printf("Average turnaround : %f\n", (float)turnaround_sum/process_count);
+
+    int waiting_sum = turnaround_sum;
+    for(int i = 0; i < Gantt_index; i++)
+    {
+        waiting_sum -= process_arr[i].cpu_burst_t;
+    }
+    printf("Average waiting : %f\n", (float)waiting_sum/process_count);
+}
+
 // main
 int main(int argc, char *argv[])
 {
@@ -329,7 +534,7 @@ int main(int argc, char *argv[])
                 break;
             case 5:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
-                else { ; }
+                else { Preemptive_SJF(); }
                 break;
             case 6:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
