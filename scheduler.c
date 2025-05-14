@@ -3,6 +3,7 @@
 #include <time.h>
 #define MAX_PID 100
 #define MAX_PROCESS 50
+#define MAX_TICK 200
 
 // define process
 // used typedef for convenience
@@ -931,7 +932,7 @@ int main(int argc, char *argv[])
                 break;
             case 3:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
-                else { FCFS(); }
+                else { NewFCFS(); }
                 break;
             case 4:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
@@ -975,7 +976,7 @@ void CheckProcesses()
             printf("IO request time : ");
             for(int j = 0; j < process_arr[i].IO_reqeust_count; j++)
             {
-                printf("%d : %d ",j+1,process_arr[i].IO_request_t[j]);
+                printf("%d, ",process_arr[i].IO_request_t[j]);
             }
             printf("\n");
         }
@@ -1229,12 +1230,18 @@ void MakeProcessMenu()
 
 void NewFCFS()
 {
-    // it'll start with sorted arr
-    process sorted_process_arr[MAX_PROCESS];
-    
+    process sorted_process_arr[MAX_PROCESS]; // it'll start with sorted arr
+    process IO_arr[process_count]; // IO array 
+    int IO_arr_count = 0; // IO array counter
+
     for(int i = 0 ; i < process_count; i++)
     {
         sorted_process_arr[i] = process_arr[i];
+    }
+
+    for(int i = 0 ; i < process_count; i++)
+    {
+        IO_arr[i] = nothing;
     }
 
     // sorting
@@ -1243,7 +1250,7 @@ void NewFCFS()
         for (int j = i + 1; j < process_count; j++) 
         {
             // set front to bigger
-            if (sorted_process_arr[i].arrival_t < sorted_process_arr[j].arrival_t) 
+            if (sorted_process_arr[i].arrival_t > sorted_process_arr[j].arrival_t) 
             {
                 process temp = sorted_process_arr[i];
                 sorted_process_arr[i] = sorted_process_arr[j];
@@ -1253,7 +1260,7 @@ void NewFCFS()
     }
 
     // printing info
-    printf("|         process info     |\n");
+    printf("|      process info     |\n");
     printf("| PID | arrival | burst |\n");
     printf("+=====+=========+=======+\n");
     for(int i = 0; i < process_count; i++)
@@ -1274,13 +1281,14 @@ void NewFCFS()
     // made running process, which saves running process information
     process running = nothing;
     
-    while(completed < process_count && tick < 100)
+    while(completed < process_count && tick < MAX_TICK)
     {
         // from empty or worse to better
         // !! there is no preemptive better one
         // check from ahead of the queue.
-        if(sorted_process_arr[0].arrival_t <= tick && running.pid == -1)
+        if(sorted_process_arr[0].arrival_t <= tick && running.pid == -1 && sorted_process_arr[0].pid != -1) //empty process cannot be preemptive
         {
+            
             // Gantt noting for empty
             if(running.executed_cpu_t > 0)
             {
@@ -1396,34 +1404,64 @@ void NewFCFS()
             }
         }
         */
+       
+        //process && IO progress
+        running.executed_cpu_t++;
+        for(int i = 0; i < process_count; i++)
+        {
+            if(IO_arr[i].pid != -1)
+            {
+                IO_arr[i].IO_burst_t--;
+
+                if(IO_arr[i].IO_burst_t == 0) // IO is end. put ready queue again.
+                {
+                    // reset IO_burst
+                    for (int j = 0; j < process_count; j++)
+                    {
+                        if(IO_arr[i].pid == process_arr[j].pid)
+                        {
+                            IO_arr[i].IO_burst_t = process_arr[j].IO_burst_t;
+                            break;
+                        }
+                    }
+
+                    // insert. find proper position starting from right.
+                    for(int j = process_count-1; j >= 0; j--)
+                    {
+                        if(sorted_process_arr[j].pid == -1) 
+                        {
+                            if(j == 0) { sorted_process_arr[j] = IO_arr[i];}
+                            continue;
+                        }
+                        else
+                        {
+                            sorted_process_arr[j+1] = IO_arr[i];
+                            break;
+                        }
+                    }
+
+                    IO_arr[i] = nothing;
+                }
+            }
+        }
 
         // check IO is done or not
         int IO = 0;
         for(int i = 0; i < running.IO_reqeust_count; i++)
         {
-            if(tick == running.IO_request_t[i]) // it's IO time.
+            if(running.executed_cpu_t == running.IO_request_t[i]) // it's IO time.
             {
-                
+                IO = 1;
+                break;
             }
-            else if(tick < running.IO_request_t[i]) { break; }
+            else if(running.executed_cpu_t < running.IO_request_t[i]) { break; }
         }
 
-        printf("|%6d|%5d|%7d|\n", tick , running.pid , running.cpu_burst_t);
-
-        //debug
-        /*
-        for(int i = 0; i < process_count; i++)
-        {
-            printf("%d ",sorted_process_arr[i].pid);
-        }
-        printf("\n");
-        */
+        if(IO > 0) { printf("|%6d|%5d|%7d| IO |\n", tick , running.pid , running.cpu_burst_t); }
+        else { printf("|%6d|%5d|%7d|    |\n", tick , running.pid , running.cpu_burst_t); }
         
         //progress tick
         tick++;
-
-        //process progress
-        running.executed_cpu_t++;
         
         //check process done
         if(running.executed_cpu_t >= running.cpu_burst_t && running.pid != -1)
@@ -1435,6 +1473,42 @@ void NewFCFS()
             running = nothing;
             completed++;
         }
+        
+        //if IO then switch
+        if(IO > 0)
+        {
+            IO = 0;
+
+            Gantt_note[Gantt_index][0] = running.pid;
+            Gantt_note[Gantt_index][1] = tick;
+            Gantt_index++;
+            
+            for(int i = 0; i < process_count; i++)
+            {
+                if(IO_arr[i].pid == -1)
+                {
+                    IO_arr[i] = running;
+                    break;
+                }
+            }
+            running = nothing;
+        }
+
+        //debug
+        printf("ready queue : ");
+        for(int i = 0; i < process_count; i++)
+        {
+            printf("%d ",sorted_process_arr[i].pid);
+        }
+        printf("\n");
+
+        printf("IO queue : ");
+        for(int i = 0; i < process_count; i++)
+        {
+            printf("%d ",IO_arr[i].pid);
+        }
+        printf("\n");
+
     } // scheduling finished
 
     // draw Gantt chart
