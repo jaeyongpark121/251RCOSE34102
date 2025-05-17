@@ -2367,7 +2367,7 @@ void NewRound_Robin(int given_quantum)
     while(completed < process_count && tick < MAX_TICK)
     {
         // from empty to new one
-        if (sorted_process_arr[0].arrival_t <= tick && running.pid == -1)
+        if (sorted_process_arr[0].arrival_t <= tick && running.pid == -1 && sorted_process_arr[0].pid != -1)
         {
             done_quantum = 0;
 
