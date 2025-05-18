@@ -44,10 +44,14 @@ void MakeProcessRandomly();
 
 void MakeProcessMenu();
 
+// sorting
+void Process_Sorting();
+
 void NewFCFS(int eval);
-void NewNon_preemptive_SJF();
-void NewPreemptive_SJF();
-void NewPreemptive_Priority();
+void NewNon_preemptive_SJF(int eval);
+void NewPreemptive_SJF(int eval);
+void NewNon_preemptive_Priority(int eval);
+void NewPreemptive_Priority(int eval);
 void NewRound_Robin(int given_quantum, int eval);
 
 // main
@@ -63,9 +67,10 @@ int main(int argc, char *argv[])
         printf("3. FCFS\n");
         printf("4. Non-Preemptive SJF\n");
         printf("5. Preemptive SJF\n");
-        printf("6. Preemptive Priority\n");
-        printf("7. Round Robin\n");
-        printf("8. Evaluation\n");
+        printf("6. Non-Preemptive SJF\n");
+        printf("7. Preemptive Priority\n");
+        printf("8. Round Robin\n");
+        printf("9. Evaluation\n");
         printf("if you wanna go out, type negative number.\n");
         printf("=================\n");
         printf("please write number to choose > ");
@@ -93,9 +98,13 @@ int main(int argc, char *argv[])
                 break;
             case 6:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
-                else { NewPreemptive_Priority(0); }
+                else { NewNon_preemptive_Priority(0); }
                 break;
             case 7:
+                if(process_count == 0) { printf("- there are no processes -\n") ;}
+                else { NewPreemptive_Priority(0); }
+                break;
+            case 8:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
                 else 
                 {
@@ -107,7 +116,7 @@ int main(int argc, char *argv[])
                     NewRound_Robin(select , 0); 
                 }
                 break;
-            case 8:
+            case 9:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
                 else 
                 {
@@ -1226,6 +1235,261 @@ void NewPreemptive_SJF(int eval)
             // IO burst * count!
             waiting_sum -= process_arr[i].IO_burst_t;
         }
+    }
+    printf("Average waiting : %f\n", (float)waiting_sum / process_count);
+}
+
+void NewNon_preemptive_Priority(int eval)
+{
+    process sorted_process_arr[MAX_PROCESS]; // sorted arr prepare
+    for(int i = 0 ; i < process_count; i++) { sorted_process_arr[i] = process_arr[i]; }
+
+    process IO_arr[process_count]; // IO array prepare
+    for(int i = 0 ; i < process_count; i++) { IO_arr[i] = nothing; }
+
+    int IO_arr_count = 0; // IO array counter
+
+    // sorting
+    for (int i = 0; i < process_count - 1; i++) 
+    {
+        for (int j = i + 1; j < process_count; j++) 
+        {
+            // set front to bigger
+            if (sorted_process_arr[i].priority < sorted_process_arr[j].priority) 
+            {
+                process temp = sorted_process_arr[i];
+                sorted_process_arr[i] = sorted_process_arr[j];
+                sorted_process_arr[j] = temp;
+            }
+        }
+    }
+    
+    if(eval == 0)
+    {
+        // printing info
+        printf("|      process info     |\n");
+        printf("| PID | arrival | burst |\n");
+        printf("+=====+=========+=======+\n");
+        for(int i = 0; i < process_count; i++)
+        {
+            printf("|%5d|%9d|%7d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].cpu_burst_t);
+        }
+        printf("+=====+=========+=======+\n");
+    }
+
+    // preparing variables
+    int completed = 0; // completed processes
+    int tick = 0; 
+    int Gantt_note[1000][3] = {{0,0,0},}; // which pid ends when, and IO
+    int Gantt_index = 0;
+    process running = nothing; // made running process, which saves running process information
+    
+    if (eval == 0)
+    {
+        printf("| Tick | PID | burst | IO |\n");
+        printf("+======+=====+=======+====+\n");
+    }
+    
+    // scheduling start
+    while(completed < process_count && tick < MAX_TICK)
+    {
+        // from empty to better
+        // check from ahead of the queue.
+        for(int i = 0 ; i < process_count; i++)
+        {
+            // check empty 
+            if(sorted_process_arr[i].arrival_t <= tick && (running.pid == -1) && sorted_process_arr[i].pid != -1)
+            {
+                // Gantt noting for empty
+                if(running.executed_cpu_t > 0)
+                {
+                    running.executed_cpu_t = 0;
+                    Gantt_note[Gantt_index][0] = running.pid;
+                    Gantt_note[Gantt_index][1] = tick;
+                    Gantt_index++;
+                }
+                
+                // replace running, reorganize queue
+                running = sorted_process_arr[i];
+                sorted_process_arr[i] = nothing;
+                for(int j = i; j < process_count-1 ; j++)
+                {
+                    // from i, drag the queue
+                    if(sorted_process_arr[j+1].pid != -1) 
+                    {
+                        sorted_process_arr[j] = sorted_process_arr[j+1];
+                        sorted_process_arr[j+1] = nothing;
+                    }
+                }
+                // found first is the best always.
+                break;
+            }
+        }
+       
+        //process && IO progress
+        running.executed_cpu_t++;
+        
+        for(int i = 0; i < process_count; i++)
+        {
+            if(IO_arr[i].pid != -1)
+            {
+                IO_arr[i].IO_burst_t--;
+
+                if(IO_arr[i].IO_burst_t == 0) // IO is end. put ready queue again.
+                {
+                    // reset IO_burst
+                    for (int j = 0; j < process_count; j++)
+                    {
+                        if(IO_arr[i].pid == process_arr[j].pid)
+                        {
+                            IO_arr[i].IO_burst_t = process_arr[j].IO_burst_t;
+                            break;
+                        }
+                    }
+
+                    // insert. find proper position starting from right.
+                    for(int j = process_count-1; j >= 0; j--)
+                    {
+                        if(sorted_process_arr[j].pid == -1) 
+                        {
+                            if(j == 0) { sorted_process_arr[j] = IO_arr[i];}
+                            continue;
+                        }
+                        
+                        if(IO_arr[i].priority < sorted_process_arr[j].priority)
+                        {
+                            sorted_process_arr[j+1] = IO_arr[i];
+                            break;
+                        }
+                        else
+                        {
+                            sorted_process_arr[j+1] = sorted_process_arr[j];
+                            sorted_process_arr[j] = nothing;
+                            if(j==0) { sorted_process_arr[j] = IO_arr[i];}
+                        }
+                    }
+
+                    IO_arr[i] = nothing;
+                }
+            }
+        }
+
+        // check if IO time or not
+        int IO = 0;
+        for(int i = 0; i < running.IO_request_count; i++)
+        {
+            if(running.executed_cpu_t == running.IO_request_t[i]) // it's IO time.
+            {
+                IO = 1;
+                break;
+            }
+            else if(running.executed_cpu_t < running.IO_request_t[i]) { break; }
+        }
+
+        if(eval == 0)
+        {
+            if(IO > 0) { printf("|%6d|%5d|%7d| IO |\n", tick , running.pid , running.cpu_burst_t); }
+            else { printf("|%6d|%5d|%7d|    |\n", tick , running.pid , running.cpu_burst_t); }
+        }
+        
+        //progress tick
+        tick++;
+        
+        //check process done
+        if(running.executed_cpu_t >= running.cpu_burst_t && running.pid != -1)
+        {
+            Gantt_note[Gantt_index][0] = running.pid;
+            Gantt_note[Gantt_index][1] = tick;
+            Gantt_index++;
+
+            running = nothing;
+            completed++;
+        }
+        
+        //if IO then switch
+        if(IO > 0)
+        {
+            IO = 0;
+
+            Gantt_note[Gantt_index][0] = running.pid;
+            Gantt_note[Gantt_index][1] = tick;
+            Gantt_note[Gantt_index][2] = 1;
+            Gantt_index++;
+            
+            for(int i = 0; i < process_count; i++)
+            {
+                if(IO_arr[i].pid == -1)
+                {
+                    IO_arr[i] = running;
+                    break;
+                }
+            }
+            running = nothing;
+        }
+
+        //debug
+        /*
+        printf("ready queue : ");
+        for(int i = 0; i < process_count; i++)
+        {
+            printf("%d ",sorted_process_arr[i].pid);
+        }
+        printf("\n");
+
+        printf("IO queue : ");
+        for(int i = 0; i < process_count; i++)
+        {
+            printf("%d ",IO_arr[i].pid);
+        }
+        printf("\n");
+        */
+       
+    } // scheduling finished
+
+    // draw Gantt chart
+    if(eval == 0)
+    {
+        printf("\n=== Gantt chart ===\n");
+        for(int i = 0; i < Gantt_index; i++)
+        {
+            if(Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |",Gantt_note[i][1]);}
+            else
+            {
+                printf("| P[%d] ~%d",Gantt_note[i][0],Gantt_note[i][1]); 
+                if(Gantt_note[i][2] == 0) {printf(" |");}
+                else if(Gantt_note[i][2] == 1) {printf("(IO) |");}
+            }   
+        }
+        printf("\n===================\n");
+    }
+    
+    //evaluation
+    if(eval == 0) { printf("\n=== Evaluation ===\n"); }
+    else { printf("\n[ Nonpreemptive SJF ] "); }
+    
+    // calculate turnaround with original arr
+    int turnaround_sum = 0;
+    int temp_turnaround = 0;
+    for (int i = 0; i < process_count; i++)
+    {
+        for (int j = Gantt_index - 1; j >= 0; j--)
+        {
+            if (Gantt_note[j][0] == process_arr[i].pid)
+            {
+                temp_turnaround = Gantt_note[j][1];
+                break;
+            }
+        }
+        turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+
+    }
+    printf("Average turnaround : %f | ", (float)turnaround_sum / process_count);
+
+    int waiting_sum = turnaround_sum;
+    for (int i = 0; i < process_count; i++)
+    {
+        waiting_sum -= process_arr[i].cpu_burst_t;
+        waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
     }
     printf("Average waiting : %f\n", (float)waiting_sum / process_count);
 }
