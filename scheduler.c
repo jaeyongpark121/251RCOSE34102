@@ -45,7 +45,7 @@ void MakeProcessRandomly();
 void MakeProcessMenu();
 
 // sorting
-void Process_Sorting();
+void Process_Printing();
 
 void NewFCFS(int eval);
 void NewNon_preemptive_SJF(int eval);
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
         printf("3. FCFS\n");
         printf("4. Non-Preemptive SJF\n");
         printf("5. Preemptive SJF\n");
-        printf("6. Non-Preemptive SJF\n");
+        printf("6. Non-Preemptive Priority\n");
         printf("7. Preemptive Priority\n");
         printf("8. Round Robin\n");
         printf("9. Evaluation\n");
@@ -128,6 +128,7 @@ int main(int argc, char *argv[])
                     NewFCFS(1);
                     NewNon_preemptive_SJF(1);
                     NewPreemptive_SJF(1);
+                    NewNon_preemptive_Priority(1);
                     NewPreemptive_Priority(1);
                     NewRound_Robin(select , 1);
 
@@ -306,7 +307,7 @@ void DeleteProcess()
     printf("please write index of process to delete > ");
     scanf("%d",&select);
 
-    if(select >= process_count)
+    if(select >= process_count || select < 0)
     {
          printf("- wrong input -\n");
     } 
@@ -430,6 +431,18 @@ void MakeProcessMenu()
     }
 }
 
+void Process_Printing(process sorted_process_arr[], int process_count)
+{
+    printf("|            process info          |\n");
+    printf("| PID | arrival | burst | priority |\n");
+    printf("+=====+=========+=======+==========+\n");
+    for(int i = 0; i < process_count; i++)
+    {
+        printf("|%5d|%9d|%7d|%10d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].cpu_burst_t,sorted_process_arr[i].arrival_t);
+    }
+    printf("+=====+=========+=======+==========+\n");
+}
+
 void NewFCFS(int eval)
 {
     process sorted_process_arr[MAX_PROCESS]; // sorted arr prepare
@@ -457,15 +470,7 @@ void NewFCFS(int eval)
 
     if(eval == 0)
     {
-        // printing info
-        printf("|      process info     |\n");
-        printf("| PID | arrival | burst |\n");
-        printf("+=====+=========+=======+\n");
-        for(int i = 0; i < process_count; i++)
-        {
-            printf("|%5d|%9d|%7d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].cpu_burst_t);
-        }
-        printf("+=====+=========+=======+\n");
+        Process_Printing(sorted_process_arr,process_count);
     }
 
     // preparing variables
@@ -477,8 +482,8 @@ void NewFCFS(int eval)
 
     if (eval == 0)
     {
-        printf("| Tick | PID | burst | IO |\n");
-        printf("+======+=====+=======+====+\n");
+        printf("| Tick | PID | remaining burst | IO |\n");
+        printf("+======+=====+=================+====+\n");
     }
     
     // scheduling start
@@ -565,8 +570,9 @@ void NewFCFS(int eval)
 
         if(eval == 0)
         {
-            if(IO > 0) { printf("|%6d|%5d|%7d| IO |\n", tick , running.pid , running.cpu_burst_t); }
-            else { printf("|%6d|%5d|%7d|    |\n", tick , running.pid , running.cpu_burst_t); }
+            if (running.pid == -1) { printf("|%6d|%5d|%17d|    |\n", tick, running.pid, running.cpu_burst_t);}
+            else if (IO > 0) { printf("|%6d|%5d|%17d| IO |\n", tick, running.pid, running.cpu_burst_t - running.executed_cpu_t); }
+            else { printf("|%6d|%5d|%17d|    |\n", tick, running.pid, running.cpu_burst_t - running.executed_cpu_t); }
         }
         //progress tick
         tick++;
@@ -698,15 +704,7 @@ void NewNon_preemptive_SJF(int eval)
     
     if(eval == 0)
     {
-        // printing info
-        printf("|      process info     |\n");
-        printf("| PID | arrival | burst |\n");
-        printf("+=====+=========+=======+\n");
-        for(int i = 0; i < process_count; i++)
-        {
-            printf("|%5d|%9d|%7d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].cpu_burst_t);
-        }
-        printf("+=====+=========+=======+\n");
+        Process_Printing(sorted_process_arr,process_count);
     }
 
     // preparing variables
@@ -718,8 +716,8 @@ void NewNon_preemptive_SJF(int eval)
     
     if (eval == 0)
     {
-        printf("| Tick | PID | burst | IO |\n");
-        printf("+======+=====+=======+====+\n");
+        printf("| Tick | PID | remaining burst | IO |\n");
+        printf("+======+=====+=================+====+\n");
     }
     
     // scheduling start
@@ -821,8 +819,9 @@ void NewNon_preemptive_SJF(int eval)
 
         if(eval == 0)
         {
-            if(IO > 0) { printf("|%6d|%5d|%7d| IO |\n", tick , running.pid , running.cpu_burst_t); }
-            else { printf("|%6d|%5d|%7d|    |\n", tick , running.pid , running.cpu_burst_t); }
+            if (running.pid == -1) { printf("|%6d|%5d|%17d|    |\n", tick, running.pid, running.cpu_burst_t);}
+            else if (IO > 0) { printf("|%6d|%5d|%17d| IO |\n", tick, running.pid, running.cpu_burst_t - running.executed_cpu_t); }
+            else { printf("|%6d|%5d|%17d|    |\n", tick, running.pid, running.cpu_burst_t - running.executed_cpu_t); }
         }
         
         //progress tick
@@ -955,14 +954,7 @@ void NewPreemptive_SJF(int eval)
     // printing info
     if(eval == 0)
     {
-        printf("|      process info     |\n");
-        printf("| PID | arrival | burst |\n");
-        printf("+=====+=========+=======+\n");
-        for(int i = 0; i < process_count; i++)
-        {
-            printf("|%5d|%9d|%7d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].cpu_burst_t);
-        }
-        printf("+=====+=========+=======+\n");
+        Process_Printing(sorted_process_arr,process_count);
     }   
 
     // preparing variables
@@ -1266,15 +1258,7 @@ void NewNon_preemptive_Priority(int eval)
     
     if(eval == 0)
     {
-        // printing info
-        printf("|      process info     |\n");
-        printf("| PID | arrival | burst |\n");
-        printf("+=====+=========+=======+\n");
-        for(int i = 0; i < process_count; i++)
-        {
-            printf("|%5d|%9d|%7d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].cpu_burst_t);
-        }
-        printf("+=====+=========+=======+\n");
+        Process_Printing(sorted_process_arr,process_count);
     }
 
     // preparing variables
@@ -1286,8 +1270,8 @@ void NewNon_preemptive_Priority(int eval)
     
     if (eval == 0)
     {
-        printf("| Tick | PID | burst | IO |\n");
-        printf("+======+=====+=======+====+\n");
+        printf("| Tick | PID | remaining burst | IO |\n");
+        printf("+======+=====+=================+====+\n");
     }
     
     // scheduling start
@@ -1388,8 +1372,9 @@ void NewNon_preemptive_Priority(int eval)
 
         if(eval == 0)
         {
-            if(IO > 0) { printf("|%6d|%5d|%7d| IO |\n", tick , running.pid , running.cpu_burst_t); }
-            else { printf("|%6d|%5d|%7d|    |\n", tick , running.pid , running.cpu_burst_t); }
+            if (running.pid == -1) { printf("|%6d|%5d|%17d|    |\n", tick, running.pid, running.cpu_burst_t);}
+            else if (IO > 0) { printf("|%6d|%5d|%17d| IO |\n", tick, running.pid, running.cpu_burst_t - running.executed_cpu_t); }
+            else { printf("|%6d|%5d|%17d|    |\n", tick, running.pid, running.cpu_burst_t - running.executed_cpu_t); }
         }
         
         //progress tick
@@ -1465,7 +1450,7 @@ void NewNon_preemptive_Priority(int eval)
     
     //evaluation
     if(eval == 0) { printf("\n=== Evaluation ===\n"); }
-    else { printf("\n[ Nonpreemptive SJF ] "); }
+    else { printf("\n[ Nonpreemptive Priority ] "); }
     
     // calculate turnaround with original arr
     int turnaround_sum = 0;
@@ -1521,15 +1506,7 @@ void NewPreemptive_Priority(int eval)
 
     if(eval == 0)
     {
-        // printing info
-        printf("|        process info      |\n");
-        printf("| PID | arrival | priority |\n");
-        printf("+=====+=========+==========+\n");
-        for(int i = 0; i < process_count; i++)
-        {
-            printf("|%5d|%9d|%10d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].priority);
-        }
-        printf("+=====+=========+=======+\n");
+        Process_Printing(sorted_process_arr,process_count);
     }
 
     // preparing variables
@@ -1827,14 +1804,7 @@ void NewRound_Robin(int given_quantum ,int eval)
     // printing info
     if(eval == 0)
     {
-        printf("|     process info      |\n");
-        printf("| PID | arrival | burst |\n");
-        printf("+=====+=========+=======+\n");
-        for(int i = 0; i < process_count; i++)
-        {
-            printf("|%5d|%9d|%7d|\n",sorted_process_arr[i].pid,sorted_process_arr[i].arrival_t,sorted_process_arr[i].cpu_burst_t);
-        }
-        printf("+=====+=========+=======+\n");
+        Process_Printing(sorted_process_arr,process_count);
     }
 
     // preparing variables
@@ -2019,7 +1989,6 @@ void NewRound_Robin(int given_quantum ,int eval)
             done_quantum = 0;
         }
         //debug
-        /*
         printf("ready queue : ");
         for(int i = 0; i < process_count; i++)
         {
@@ -2032,7 +2001,6 @@ void NewRound_Robin(int given_quantum ,int eval)
             printf("%d ",IO_arr[i].pid);
         }
         printf("\n");
-        */
     } // scheduling finished
 
     // draw Gantt chart
