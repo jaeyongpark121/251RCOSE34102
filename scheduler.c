@@ -1823,74 +1823,37 @@ void NewRound_Robin(int given_quantum ,int eval)
 
     while(completed < process_count && tick < MAX_TICK)
     {
+        // make empty first? then draw from front
         // from empty to new one
-        if (sorted_process_arr[0].arrival_t <= tick && running.pid == -1 && sorted_process_arr[0].pid != -1)
+        
+        for(int i = 0 ; i < process_count; i++)
         {
-            done_quantum = 0;
-
-            // Gantt noting for empty
-            if(running.executed_cpu_t > 0)
+            // check empty 
+            if(sorted_process_arr[i].arrival_t <= tick && (running.pid == -1) && sorted_process_arr[i].pid != -1)
             {
-                running.executed_cpu_t = 0;
-                Gantt_note[Gantt_index][0] = running.pid;
-                Gantt_note[Gantt_index][1] = tick;
-                Gantt_index++;
-            }
-
-            // replace running, reorganize queue
-            running = sorted_process_arr[0];
-            sorted_process_arr[0] = nothing;
-            for (int j = 0; j < process_count - 1; j++)
-            {
-                // from i, drag the queue
-                if (sorted_process_arr[j + 1].pid != -1)
+                // Gantt noting for empty
+                if(running.executed_cpu_t > 0)
                 {
-                    sorted_process_arr[j] = sorted_process_arr[j + 1];
-                    sorted_process_arr[j + 1] = nothing;
+                    running.executed_cpu_t = 0;
+                    Gantt_note[Gantt_index][0] = running.pid;
+                    Gantt_note[Gantt_index][1] = tick;
+                    Gantt_index++;
                 }
-            }  
-        }
-        else if (done_quantum >= given_quantum)
-        {
-            done_quantum = 0;
-
-            // Gantt noting for normal process
-            Gantt_note[Gantt_index][0] = running.pid;
-            Gantt_note[Gantt_index][1] = tick;
-            Gantt_index++;
-            
-            if (sorted_process_arr[0].pid != -1)
-            {
-                // save current running to put again
-                process temp = running;
-
-                if (sorted_process_arr[0].arrival_t <= tick)
+                
+                // replace running, reorganize queue
+                running = sorted_process_arr[i];
+                sorted_process_arr[i] = nothing;
+                for(int j = i; j < process_count-1 ; j++)
                 {
-                    // replace running, reorganize queue
-                    running = sorted_process_arr[0];
-                    sorted_process_arr[0] = nothing;
-                    for (int j = 0; j < process_count - 1; j++)
+                    // from i, drag the queue
+                    if(sorted_process_arr[j+1].pid != -1) 
                     {
-                        // from i, drag the queue
-                        if (sorted_process_arr[j + 1].pid != -1)
-                        {
-                            sorted_process_arr[j] = sorted_process_arr[j + 1];
-                            sorted_process_arr[j + 1] = nothing;
-                        }
-                    }
-
-                    // insert temp. find proper position starting from right.
-                    for (int j = process_count - 1; j >= 0; j--)
-                    {
-                        if (sorted_process_arr[j].pid == -1)
-                        {
-                            if (j == 0) { sorted_process_arr[j] = temp; }
-                            continue;
-                        }
-                        else { sorted_process_arr[j + 1] = temp; }
-                        break;
+                        sorted_process_arr[j] = sorted_process_arr[j+1];
+                        sorted_process_arr[j+1] = nothing;
                     }
                 }
+                // found first is the best always.
+                break;
             }
         }
 
@@ -1988,7 +1951,35 @@ void NewRound_Robin(int given_quantum ,int eval)
             running = nothing;
             done_quantum = 0;
         }
+
+        //if quantum is end then switch
+        if (done_quantum >= given_quantum) 
+        {
+            done_quantum = 0;
+
+            // Gantt noting for normal process
+            Gantt_note[Gantt_index][0] = running.pid;
+            Gantt_note[Gantt_index][1] = tick;
+            Gantt_index++;
+
+            process temp = running;
+            running = nothing;
+
+            // insert temp. find proper position starting from right.
+            for (int j = process_count - 1; j >= 0; j--)
+            {
+                if (sorted_process_arr[j].pid == -1)
+                {
+                    if (j == 0) { sorted_process_arr[j] = temp; }
+                    continue;
+                }
+                else { sorted_process_arr[j + 1] = temp; }
+                break;
+            }
+        }
+        
         //debug
+        /*
         printf("ready queue : ");
         for(int i = 0; i < process_count; i++)
         {
@@ -2001,6 +1992,7 @@ void NewRound_Robin(int given_quantum ,int eval)
             printf("%d ",IO_arr[i].pid);
         }
         printf("\n");
+        */
     } // scheduling finished
 
     // draw Gantt chart
