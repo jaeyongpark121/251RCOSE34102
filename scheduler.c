@@ -2216,9 +2216,18 @@ void Lottery(int eval)
         //check process done
         if(running.executed_cpu_t >= running.cpu_burst_t && running.pid != -1)
         {
-            Gantt_note[Gantt_index][0] = running.pid;
-            Gantt_note[Gantt_index][1] = tick;
-            Gantt_index++;
+            // if same process got again, rewrite Gantt_note
+            if(Gantt_index > 0 && running.pid == Gantt_note[Gantt_index-1][0])
+            {
+                Gantt_note[Gantt_index-1][0] = running.pid;
+                Gantt_note[Gantt_index-1][1] = tick;
+            }
+            else
+            {
+                Gantt_note[Gantt_index][0] = running.pid;
+                Gantt_note[Gantt_index][1] = tick;
+                Gantt_index++;
+            }
 
             running = nothing;
             completed++;
@@ -2229,10 +2238,19 @@ void Lottery(int eval)
         {
             IO = 0;
 
-            Gantt_note[Gantt_index][0] = running.pid;
-            Gantt_note[Gantt_index][1] = tick;
+            // if same process got again, rewrite Gantt_note
+            if(Gantt_index > 0 && running.pid == Gantt_note[Gantt_index-1][0])
+            {
+                Gantt_note[Gantt_index-1][0] = running.pid;
+                Gantt_note[Gantt_index-1][1] = tick;
+            }
+            else
+            {
+                Gantt_note[Gantt_index][0] = running.pid;
+                Gantt_note[Gantt_index][1] = tick;
+                Gantt_index++;
+            }
             Gantt_note[Gantt_index][2] = 1;
-            Gantt_index++;
             
             for(int i = 0; i < process_count; i++)
             {
