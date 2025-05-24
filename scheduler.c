@@ -47,12 +47,12 @@ void MakeProcessMenu();
 // sorting
 void Process_Printing();
 
-void NewFCFS(int eval);
-void NewNon_preemptive_SJF(int eval);
-void NewPreemptive_SJF(int eval);
-void NewNon_preemptive_Priority(int eval);
-void NewPreemptive_Priority(int eval);
-void NewRound_Robin(int given_quantum, int eval);
+void FCFS(int eval);
+void Non_preemptive_SJF(int eval);
+void Preemptive_SJF(int eval);
+void Non_preemptive_Priority(int eval);
+void Preemptive_Priority(int eval);
+void Round_Robin(int given_quantum, int eval);
 void Lottery(int eval);
 
 // main
@@ -88,23 +88,23 @@ int main(int argc, char *argv[])
                 break;
             case 3:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
-                else { NewFCFS(0); }
+                else { FCFS(0); }
                 break;
             case 4:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
-                else { NewNon_preemptive_SJF(0); }
+                else { Non_preemptive_SJF(0); }
                 break;
             case 5:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
-                else { NewPreemptive_SJF(0); }
+                else { Preemptive_SJF(0); }
                 break;
             case 6:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
-                else { NewNon_preemptive_Priority(0); }
+                else { Non_preemptive_Priority(0); }
                 break;
             case 7:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
-                else { NewPreemptive_Priority(0); }
+                else { Preemptive_Priority(0); }
                 break;
             case 8:
                 if(process_count == 0) { printf("- there are no processes -\n") ;}
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
                     printf("please write time quantum (max = 20) > ");
                     scanf("%d",&select);
                     if(select < 1) {select = 1;} else if (select > 20) {select = 20;}
-                    NewRound_Robin(select , 0); 
+                    Round_Robin(select , 0); 
                 }
                 break;
             case 9:
@@ -131,12 +131,12 @@ int main(int argc, char *argv[])
                     printf("please write time quantum for RR evaluation(max = 20) > ");
                     scanf("%d",&select);
                     if(select < 1) {select = 1;} else if (select > 20) {select = 20;}
-                    NewFCFS(1);
-                    NewNon_preemptive_SJF(1);
-                    NewPreemptive_SJF(1);
-                    NewNon_preemptive_Priority(1);
-                    NewPreemptive_Priority(1);
-                    NewRound_Robin(select , 1);
+                    FCFS(1);
+                    Non_preemptive_SJF(1);
+                    Preemptive_SJF(1);
+                    Non_preemptive_Priority(1);
+                    Preemptive_Priority(1);
+                    Round_Robin(select , 1);
                     Lottery(1);
 
                 }
@@ -450,7 +450,7 @@ void Process_Printing(process sorted_process_arr[], int process_count)
     printf("+=====+=========+=======+==========+\n");
 }
 
-void NewFCFS(int eval)
+void FCFS(int eval)
 {
     process sorted_process_arr[MAX_PROCESS]; // sorted arr prepare
     for(int i = 0 ; i < process_count; i++) { sorted_process_arr[i] = process_arr[i]; }
@@ -642,55 +642,62 @@ void NewFCFS(int eval)
     } 
     // scheduling finished
 
-    // draw Gantt chart
-    if(eval == 0)
+    if(tick < MAX_TICK)
     {
-        printf("\n=== Gantt chart ===\n");
-        for(int i = 0; i < Gantt_index; i++)
+        // draw Gantt chart
+        if(eval == 0)
         {
-            if(Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |",Gantt_note[i][1]);}
-            else
+            printf("\n=== Gantt chart ===\n");
+            for(int i = 0; i < Gantt_index; i++)
             {
-                printf("| P[%d] ~%d",Gantt_note[i][0],Gantt_note[i][1]); 
-                if(Gantt_note[i][2] == 0) {printf(" |");}
-                else if(Gantt_note[i][2] == 1) {printf("(IO) |");}
-            }   
-        }
-        printf("\n===================\n");
-    }
-
-    //evaluation
-    if(eval == 0) { printf("\n=== Evaluation ===\n"); }
-    else { printf("\n[ FCFS ] "); }
-
-    // calculate turnaround with original arr
-    int turnaround_sum = 0;
-    int temp_turnaround = 0;
-    for(int i = 0; i < process_count; i++)
-    {
-        for(int j = Gantt_index-1 ; j >= 0; j--)
-        {
-            if(Gantt_note[j][0] == process_arr[i].pid)
-            {
-                temp_turnaround = Gantt_note[j][1];
-                break;
+                if(Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |",Gantt_note[i][1]);}
+                else
+                {
+                    printf("| P[%d] ~%d",Gantt_note[i][0],Gantt_note[i][1]); 
+                    if(Gantt_note[i][2] == 0) {printf(" |");}
+                    else if(Gantt_note[i][2] == 1) {printf("(IO) |");}
+                }   
             }
+            printf("\n===================\n");
         }
-        turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
-        
-    }
-    printf("Average turnaround : %f | ", (float)turnaround_sum/process_count);
 
-    int waiting_sum = turnaround_sum;
-    for(int i = 0; i < process_count; i++)
-    {
-        waiting_sum -= process_arr[i].cpu_burst_t;
-        waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        //evaluation
+        if(eval == 0) { printf("\n=== Evaluation ===\n"); }
+        else { printf("\n[ FCFS ] "); }
+
+        // calculate turnaround with original arr
+        int turnaround_sum = 0;
+        int temp_turnaround = 0;
+        for(int i = 0; i < process_count; i++)
+        {
+            for(int j = Gantt_index-1 ; j >= 0; j--)
+            {
+                if(Gantt_note[j][0] == process_arr[i].pid)
+                {
+                    temp_turnaround = Gantt_note[j][1];
+                    break;
+                }
+            }
+            turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+            
+        }
+        printf("Average turnaround : %f | ", (float)turnaround_sum/process_count);
+
+        int waiting_sum = turnaround_sum;
+        for(int i = 0; i < process_count; i++)
+        {
+            waiting_sum -= process_arr[i].cpu_burst_t;
+            waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        }
+        printf("Average waiting : %f\n", (float)waiting_sum/process_count);
     }
-    printf("Average waiting : %f\n", (float)waiting_sum/process_count);
+    else
+    {
+        printf("[ FCFS ] MAX_TICK raeched. abnormal end.\n");
+    }
 }
 
-void NewNon_preemptive_SJF(int eval)
+void Non_preemptive_SJF(int eval)
 {
     process sorted_process_arr[MAX_PROCESS]; // sorted arr prepare
     for(int i = 0 ; i < process_count; i++) { sorted_process_arr[i] = process_arr[i]; }
@@ -891,55 +898,63 @@ void NewNon_preemptive_SJF(int eval)
        
     } // scheduling finished
 
-    // draw Gantt chart
-    if(eval == 0)
+    if(tick < MAX_TICK)
     {
-        printf("\n=== Gantt chart ===\n");
-        for(int i = 0; i < Gantt_index; i++)
+        
+        // draw Gantt chart
+        if(eval == 0)
         {
-            if(Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |",Gantt_note[i][1]);}
-            else
+            printf("\n=== Gantt chart ===\n");
+            for(int i = 0; i < Gantt_index; i++)
             {
-                printf("| P[%d] ~%d",Gantt_note[i][0],Gantt_note[i][1]); 
-                if(Gantt_note[i][2] == 0) {printf(" |");}
-                else if(Gantt_note[i][2] == 1) {printf("(IO) |");}
-            }   
-        }
-        printf("\n===================\n");
-    }
-    
-    //evaluation
-    if(eval == 0) { printf("\n=== Evaluation ===\n"); }
-    else { printf("\n[ Nonpreemptive SJF ] "); }
-    
-    // calculate turnaround with original arr
-    int turnaround_sum = 0;
-    int temp_turnaround = 0;
-    for (int i = 0; i < process_count; i++)
-    {
-        for (int j = Gantt_index - 1; j >= 0; j--)
-        {
-            if (Gantt_note[j][0] == process_arr[i].pid)
-            {
-                temp_turnaround = Gantt_note[j][1];
-                break;
+                if(Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |",Gantt_note[i][1]);}
+                else
+                {
+                    printf("| P[%d] ~%d",Gantt_note[i][0],Gantt_note[i][1]); 
+                    if(Gantt_note[i][2] == 0) {printf(" |");}
+                    else if(Gantt_note[i][2] == 1) {printf("(IO) |");}
+                }   
             }
+            printf("\n===================\n");
         }
-        turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+        
+        //evaluation
+        if(eval == 0) { printf("\n=== Evaluation ===\n"); }
+        else { printf("\n[ Nonpreemptive SJF ] "); }
+        
+        // calculate turnaround with original arr
+        int turnaround_sum = 0;
+        int temp_turnaround = 0;
+        for (int i = 0; i < process_count; i++)
+        {
+            for (int j = Gantt_index - 1; j >= 0; j--)
+            {
+                if (Gantt_note[j][0] == process_arr[i].pid)
+                {
+                    temp_turnaround = Gantt_note[j][1];
+                    break;
+                }
+            }
+            turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
 
+        }
+        printf("Average turnaround : %f | ", (float)turnaround_sum / process_count);
+
+        int waiting_sum = turnaround_sum;
+        for (int i = 0; i < process_count; i++)
+        {
+            waiting_sum -= process_arr[i].cpu_burst_t;
+            waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        }
+        printf("Average waiting : %f\n", (float)waiting_sum / process_count);
     }
-    printf("Average turnaround : %f | ", (float)turnaround_sum / process_count);
-
-    int waiting_sum = turnaround_sum;
-    for (int i = 0; i < process_count; i++)
+    else
     {
-        waiting_sum -= process_arr[i].cpu_burst_t;
-        waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        printf("[ Nonpreemptive SJF ] MAX_TICK raeched. abnormal end.\n");
     }
-    printf("Average waiting : %f\n", (float)waiting_sum / process_count);
 }
 
-void NewPreemptive_SJF(int eval)
+void Preemptive_SJF(int eval)
 {
     process sorted_process_arr[MAX_PROCESS]; // sorted arr prepare
     for (int i = 0; i < process_count; i++) { sorted_process_arr[i] = process_arr[i]; }
@@ -1192,59 +1207,66 @@ void NewPreemptive_SJF(int eval)
         */
     } // scheduling finished
 
-    // draw Gantt chart
-    if(eval == 0)
+    if(tick < MAX_TICK)
     {
-        printf("\n=== Gantt chart ===\n");
-        for (int i = 0; i < Gantt_index; i++)
+        // draw Gantt chart
+        if(eval == 0)
         {
-            if (Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |", Gantt_note[i][1]); }
-            else
+            printf("\n=== Gantt chart ===\n");
+            for (int i = 0; i < Gantt_index; i++)
             {
-                printf("| P[%d] ~%d", Gantt_note[i][0], Gantt_note[i][1]);
-                if (Gantt_note[i][2] == 0) { printf(" |"); }
-                else if (Gantt_note[i][2] == 1) { printf("(IO) |"); }
+                if (Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |", Gantt_note[i][1]); }
+                else
+                {
+                    printf("| P[%d] ~%d", Gantt_note[i][0], Gantt_note[i][1]);
+                    if (Gantt_note[i][2] == 0) { printf(" |"); }
+                    else if (Gantt_note[i][2] == 1) { printf("(IO) |"); }
+                }
+            }
+            printf("\n===================\n");
+        }
+
+        //evaluation
+        if(eval == 0) { printf("\n=== Evaluation ===\n"); }
+        else { printf("\n[ Preemptive SJF ] "); }
+
+        // calculate turnaround with original arr
+        int turnaround_sum = 0;
+        int temp_turnaround = 0;
+        for (int i = 0; i < process_count; i++)
+        {
+            for (int j = Gantt_index - 1; j >= 0; j--)
+            {
+                if (Gantt_note[j][0] == process_arr[i].pid)
+                {
+                    temp_turnaround = Gantt_note[j][1];
+                    break;
+                }
+            }
+            turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+
+        }
+        printf("Average turnaround : %f | ", (float)turnaround_sum / process_count);
+
+        int waiting_sum = turnaround_sum;
+        for (int i = 0; i < process_count; i++)
+        {
+            waiting_sum -= process_arr[i].cpu_burst_t;
+            for (int j = 0; j < process_arr[i].IO_request_count; j++)
+            {
+                // IO burst * count!
+                waiting_sum -= process_arr[i].IO_burst_t;
             }
         }
-        printf("\n===================\n");
+        printf("Average waiting : %f\n", (float)waiting_sum / process_count);
     }
-
-    //evaluation
-    if(eval == 0) { printf("\n=== Evaluation ===\n"); }
-    else { printf("\n[ Preemptive SJF ] "); }
-
-    // calculate turnaround with original arr
-    int turnaround_sum = 0;
-    int temp_turnaround = 0;
-    for (int i = 0; i < process_count; i++)
+    else
     {
-        for (int j = Gantt_index - 1; j >= 0; j--)
-        {
-            if (Gantt_note[j][0] == process_arr[i].pid)
-            {
-                temp_turnaround = Gantt_note[j][1];
-                break;
-            }
-        }
-        turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
-
+        printf("[ Preemptive SJF ] MAX_TICK raeched. abnormal end.\n");
     }
-    printf("Average turnaround : %f | ", (float)turnaround_sum / process_count);
-
-    int waiting_sum = turnaround_sum;
-    for (int i = 0; i < process_count; i++)
-    {
-        waiting_sum -= process_arr[i].cpu_burst_t;
-        for (int j = 0; j < process_arr[i].IO_request_count; j++)
-        {
-            // IO burst * count!
-            waiting_sum -= process_arr[i].IO_burst_t;
-        }
-    }
-    printf("Average waiting : %f\n", (float)waiting_sum / process_count);
 }
 
-void NewNon_preemptive_Priority(int eval)
+void Non_preemptive_Priority(int eval)
 {
     process sorted_process_arr[MAX_PROCESS]; // sorted arr prepare
     for(int i = 0 ; i < process_count; i++) { sorted_process_arr[i] = process_arr[i]; }
@@ -1444,6 +1466,9 @@ void NewNon_preemptive_Priority(int eval)
        
     } // scheduling finished
 
+    if(tick < MAX_TICK)
+    {
+
     // draw Gantt chart
     if(eval == 0)
     {
@@ -1490,9 +1515,14 @@ void NewNon_preemptive_Priority(int eval)
         waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
     }
     printf("Average waiting : %f\n", (float)waiting_sum / process_count);
+    }
+    else
+    {
+        printf("[ Nonpreemptive Priority ] MAX_TICK raeched. abnormal end.\n");
+    }
 }
 
-void NewPreemptive_Priority(int eval)
+void Preemptive_Priority(int eval)
 {
     process sorted_process_arr[MAX_PROCESS]; // sorted arr prepare
     for (int i = 0; i < process_count; i++) { sorted_process_arr[i] = process_arr[i]; }
@@ -1741,55 +1771,63 @@ void NewPreemptive_Priority(int eval)
 
     } // scheduling finished
 
-    if(eval == 0)
+    if(tick < MAX_TICK)
     {
-        // draw Gantt chart
-        printf("\n=== Gantt chart ===\n");
-        for (int i = 0; i < Gantt_index; i++)
+
+        if(eval == 0)
         {
-            if (Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |", Gantt_note[i][1]); }
-            else
+            // draw Gantt chart
+            printf("\n=== Gantt chart ===\n");
+            for (int i = 0; i < Gantt_index; i++)
             {
-                printf("| P[%d] ~%d", Gantt_note[i][0], Gantt_note[i][1]);
-                if (Gantt_note[i][2] == 0) { printf(" |"); }
-                else if (Gantt_note[i][2] == 1) { printf("(IO) |"); }
+                if (Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |", Gantt_note[i][1]); }
+                else
+                {
+                    printf("| P[%d] ~%d", Gantt_note[i][0], Gantt_note[i][1]);
+                    if (Gantt_note[i][2] == 0) { printf(" |"); }
+                    else if (Gantt_note[i][2] == 1) { printf("(IO) |"); }
+                }
             }
-        }
-        printf("\n===================\n");
-    }      
+            printf("\n===================\n");
+        }      
 
-    //evaluation
-    if(eval == 0) { printf("\n=== Evaluation ===\n"); }
-    else { printf("\n[ Preemptive priority ] "); }
+        //evaluation
+        if(eval == 0) { printf("\n=== Evaluation ===\n"); }
+        else { printf("\n[ Preemptive priority ] "); }
 
-    // calculate turnaround with original arr
-    int turnaround_sum = 0;
-    int temp_turnaround = 0;
-    for (int i = 0; i < process_count; i++)
-    {
-        for (int j = Gantt_index - 1; j >= 0; j--)
+        // calculate turnaround with original arr
+        int turnaround_sum = 0;
+        int temp_turnaround = 0;
+        for (int i = 0; i < process_count; i++)
         {
-            if (Gantt_note[j][0] == process_arr[i].pid)
+            for (int j = Gantt_index - 1; j >= 0; j--)
             {
-                temp_turnaround = Gantt_note[j][1];
-                break;
+                if (Gantt_note[j][0] == process_arr[i].pid)
+                {
+                    temp_turnaround = Gantt_note[j][1];
+                    break;
+                }
             }
+            turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+
         }
-        turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+        printf("Average turnaround : %f | ", (float)turnaround_sum / process_count);
 
+        int waiting_sum = turnaround_sum;
+        for (int i = 0; i < process_count; i++)
+        {
+            waiting_sum -= process_arr[i].cpu_burst_t;
+            waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        }
+        printf("Average waiting : %f\n", (float)waiting_sum / process_count);
     }
-    printf("Average turnaround : %f | ", (float)turnaround_sum / process_count);
-
-    int waiting_sum = turnaround_sum;
-    for (int i = 0; i < process_count; i++)
+    else
     {
-        waiting_sum -= process_arr[i].cpu_burst_t;
-        waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        printf("[ Preemptive priority ] MAX_TICK raeched. abnormal end.\n");
     }
-    printf("Average waiting : %f\n", (float)waiting_sum / process_count);
 }
 
-void NewRound_Robin(int given_quantum ,int eval)
+void Round_Robin(int given_quantum ,int eval)
 {
     process sorted_process_arr[MAX_PROCESS]; // sorted arr prepare
     for (int i = 0; i < process_count; i++) { sorted_process_arr[i] = process_arr[i]; }
@@ -2008,53 +2046,61 @@ void NewRound_Robin(int given_quantum ,int eval)
         */
     } // scheduling finished
 
-    // draw Gantt chart
-    if(eval == 0)
+    if(tick < MAX_TICK)
     {
-        printf("\n=== Gantt chart ===\n");
-        for (int i = 0; i < Gantt_index; i++)
+
+        // draw Gantt chart
+        if(eval == 0)
         {
-            if (Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |", Gantt_note[i][1]); }
-            else
+            printf("\n=== Gantt chart ===\n");
+            for (int i = 0; i < Gantt_index; i++)
             {
-                printf("| P[%d] ~%d", Gantt_note[i][0], Gantt_note[i][1]);
-                if (Gantt_note[i][2] == 0) { printf(" |"); }
-                else if (Gantt_note[i][2] == 1) { printf("(IO) |"); }
+                if (Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |", Gantt_note[i][1]); }
+                else
+                {
+                    printf("| P[%d] ~%d", Gantt_note[i][0], Gantt_note[i][1]);
+                    if (Gantt_note[i][2] == 0) { printf(" |"); }
+                    else if (Gantt_note[i][2] == 1) { printf("(IO) |"); }
+                }
             }
+            printf("\n===================\n");
         }
-        printf("\n===================\n");
-    }
 
 
-    //evaluation
-    if(eval == 0) { printf("\n=== Evaluation ===\n"); }
-    else { printf("\n[ RR ] "); }
+        //evaluation
+        if(eval == 0) { printf("\n=== Evaluation ===\n"); }
+        else { printf("\n[ RR ] "); }
 
-    // calculate turnaround with original arr
-    int turnaround_sum = 0;
-    int temp_turnaround = 0;
-    for (int i = 0; i < process_count; i++)
-    {
-        for (int j = Gantt_index - 1; j >= 0; j--)
+        // calculate turnaround with original arr
+        int turnaround_sum = 0;
+        int temp_turnaround = 0;
+        for (int i = 0; i < process_count; i++)
         {
-            if (Gantt_note[j][0] == process_arr[i].pid)
+            for (int j = Gantt_index - 1; j >= 0; j--)
             {
-                temp_turnaround = Gantt_note[j][1];
-                break;
+                if (Gantt_note[j][0] == process_arr[i].pid)
+                {
+                    temp_turnaround = Gantt_note[j][1];
+                    break;
+                }
             }
+            turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+
         }
-        turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+        printf("Average turnaround : %f | ", (float)turnaround_sum / process_count);
 
+        int waiting_sum = turnaround_sum;
+        for (int i = 0; i < process_count; i++)
+        {
+            waiting_sum -= process_arr[i].cpu_burst_t;
+            waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        }
+        printf("Average waiting : %f\n", (float)waiting_sum / process_count);
     }
-    printf("Average turnaround : %f | ", (float)turnaround_sum / process_count);
-
-    int waiting_sum = turnaround_sum;
-    for (int i = 0; i < process_count; i++)
+    else
     {
-        waiting_sum -= process_arr[i].cpu_burst_t;
-        waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        printf("[ RR ] MAX_TICK raeched. abnormal end.\n");
     }
-    printf("Average waiting : %f\n", (float)waiting_sum / process_count);
 }
 
 void Lottery(int eval)
@@ -2308,51 +2354,59 @@ void Lottery(int eval)
         */
     } 
     // scheduling finished
-
-    // draw Gantt chart
-    if(eval == 0)
+    
+    if(tick < MAX_TICK)
     {
-        printf("\n=== Gantt chart ===\n");
-        for(int i = 0; i < Gantt_index; i++)
-        {
-            if(Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |",Gantt_note[i][1]);}
-            else
-            {
-                printf("| P[%d] ~%d",Gantt_note[i][0],Gantt_note[i][1]); 
-                if(Gantt_note[i][2] == 0) {printf(" |");}
-                else if(Gantt_note[i][2] == 1) {printf("(IO) |");}
-            }   
-        }
-        printf("\n===================\n");
-    }
 
-    //evaluation
-    if(eval == 0) { printf("\n=== Evaluation ===\n"); }
-    else { printf("\n[ lottery ] "); }
-
-    // calculate turnaround with original arr
-    int turnaround_sum = 0;
-    int temp_turnaround = 0;
-    for(int i = 0; i < process_count; i++)
-    {
-        for(int j = Gantt_index-1 ; j >= 0; j--)
+        // draw Gantt chart
+        if(eval == 0)
         {
-            if(Gantt_note[j][0] == process_arr[i].pid)
+            printf("\n=== Gantt chart ===\n");
+            for(int i = 0; i < Gantt_index; i++)
             {
-                temp_turnaround = Gantt_note[j][1];
-                break;
+                if(Gantt_note[i][0] == -1) { printf("| EMPTY ~%d |",Gantt_note[i][1]);}
+                else
+                {
+                    printf("| P[%d] ~%d",Gantt_note[i][0],Gantt_note[i][1]); 
+                    if(Gantt_note[i][2] == 0) {printf(" |");}
+                    else if(Gantt_note[i][2] == 1) {printf("(IO) |");}
+                }   
             }
+            printf("\n===================\n");
         }
-        turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
-        
-    }
-    printf("Average turnaround : %f | ", (float)turnaround_sum/process_count);
 
-    int waiting_sum = turnaround_sum;
-    for(int i = 0; i < process_count; i++)
-    {
-        waiting_sum -= process_arr[i].cpu_burst_t;
-        waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        //evaluation
+        if(eval == 0) { printf("\n=== Evaluation ===\n"); }
+        else { printf("\n[ lottery ] "); }
+
+        // calculate turnaround with original arr
+        int turnaround_sum = 0;
+        int temp_turnaround = 0;
+        for(int i = 0; i < process_count; i++)
+        {
+            for(int j = Gantt_index-1 ; j >= 0; j--)
+            {
+                if(Gantt_note[j][0] == process_arr[i].pid)
+                {
+                    temp_turnaround = Gantt_note[j][1];
+                    break;
+                }
+            }
+            turnaround_sum += (temp_turnaround - process_arr[i].arrival_t);
+            
+        }
+        printf("Average turnaround : %f | ", (float)turnaround_sum/process_count);
+
+        int waiting_sum = turnaround_sum;
+        for(int i = 0; i < process_count; i++)
+        {
+            waiting_sum -= process_arr[i].cpu_burst_t;
+            waiting_sum -= (process_arr[i].IO_burst_t * process_arr[i].IO_request_count);
+        }
+        printf("Average waiting : %f\n", (float)waiting_sum/process_count);
     }
-    printf("Average waiting : %f\n", (float)waiting_sum/process_count);
+    else
+    {
+        printf("[ lottery ] MAX_TICK raeched. abnormal end.\n");
+    }
 }
