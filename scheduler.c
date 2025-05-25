@@ -2167,7 +2167,7 @@ void Lottery(int eval)
 
         // select lottery ticket
         if(max_lottery > 0) { lottery = (rand()%max_lottery) + 1;}
-        // temporary noting lottery
+        // temporarily noting lottery
         max_lottery = lottery;
         
         // from nothing, check ticket and select 
@@ -2217,17 +2217,12 @@ void Lottery(int eval)
                         }
                     }
 
-                    // insert. find proper position starting from right.
+                    // insert. find empty space
                     for(int j = process_count-1; j >= 0; j--)
                     {
                         if(sorted_process_arr[j].pid == -1) 
                         {
-                            if(j == 0) { sorted_process_arr[j] = IO_arr[i];}
-                            continue;
-                        }
-                        else
-                        {
-                            sorted_process_arr[j+1] = IO_arr[i];
+                            sorted_process_arr[j] = IO_arr[i];
                             break;
                         }
                     }
@@ -2337,7 +2332,6 @@ void Lottery(int eval)
         }
 
         //debug
-        /*
         printf("ready queue : ");
         for(int i = 0; i < process_count; i++)
         {
@@ -2351,7 +2345,6 @@ void Lottery(int eval)
             printf("%d ",IO_arr[i].pid);
         }
         printf("\n");
-        */
     } 
     // scheduling finished
     
