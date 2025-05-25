@@ -2332,6 +2332,7 @@ void Lottery(int eval)
         }
 
         //debug
+        /*
         printf("ready queue : ");
         for(int i = 0; i < process_count; i++)
         {
@@ -2345,6 +2346,7 @@ void Lottery(int eval)
             printf("%d ",IO_arr[i].pid);
         }
         printf("\n");
+        */
     } 
     // scheduling finished
     
