@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
                     if(w_m_index != -1)
                     {
                         printf("smallest wait : ");
-                        switch(t_m_index)
+                        switch(w_m_index)
                         {
                             case 0: printf("FCFS\n"); break;
                             case 1: printf("Non-Preemptive SJF\n"); break;
