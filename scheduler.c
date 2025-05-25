@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #define MAX_PID 100
-#define MAX_PROCESS 50
+#define MAX_PROCESS 30
 #define MAX_TICK 200
 
 // define process
@@ -246,17 +246,25 @@ int SetRandomPID()
 
 void AddProcess(int _pid, int _arrival, int _cpu_burst, int _IO_burst, int* _IO_request_t, int _IO_request_count, int _priority,int _executed_cpu_t)
 {
-    int* copied_IO_request_t = NULL;
-    if (_IO_request_count > 0 && _IO_request_t != NULL) {
-        copied_IO_request_t = (int*)malloc(sizeof(int) * _IO_request_count);
-        for (int i = 0; i < _IO_request_count; i++) {
-            copied_IO_request_t[i] = _IO_request_t[i];
+    if(process_count < MAX_PROCESS)
+    {
+        int* copied_IO_request_t = NULL;
+        if (_IO_request_count > 0 && _IO_request_t != NULL) {
+            copied_IO_request_t = (int*)malloc(sizeof(int) * _IO_request_count);
+            for (int i = 0; i < _IO_request_count; i++) {
+                copied_IO_request_t[i] = _IO_request_t[i];
+            }
         }
+
+        process p = {_pid, _arrival, _cpu_burst, _IO_burst, copied_IO_request_t, _IO_request_count, _priority, _executed_cpu_t };
+
+        process_arr[process_count++] = p;
+        printf("- process is created -\n");
     }
-
-    process p = {_pid, _arrival, _cpu_burst, _IO_burst, copied_IO_request_t, _IO_request_count, _priority, _executed_cpu_t };
-
-    process_arr[process_count++] = p;
+    else
+    {
+        printf("process array is full");
+    }
 }
 
 void MakeProcessFast()
@@ -346,7 +354,6 @@ void MakeProcessFast()
 
             AddProcess(_pid,_arrival_t,_cpu_burst_t,_IO_burst_t, _IO_request_t, _IO_request_count, _priority ,_executed_cpu_t);          
             free(_IO_request_t);
-            printf("- process is created -\n");
         }
         else
         {
@@ -455,7 +462,6 @@ void MakeProcessRandomly()
 
     AddProcess(_pid,_arrival_t,_cpu_burst_t,_IO_burst_t, _IO_request_t, _IO_request_count, _priority ,_executed_cpu_t);
     free(_IO_request_t);
-    printf("- process is created -\n");
 }
 
 void MakeProcessMenu()
